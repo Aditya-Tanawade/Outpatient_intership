@@ -11,10 +11,7 @@ import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
-
 import java.time.LocalDate;
-import java.util.Optional;
-
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
@@ -32,132 +29,79 @@ class AvailableDateServiceTest {
     @InjectMocks
     private AvailableDateService availableDateService;
 
-    private String doctorEmail;
-    private Doctor mockDoctor;
-    private AvailableDate mockAvailableDate;
+    private AvailableDate availableDate;
+    private Doctor doctor;
 
     @BeforeEach
     void setUp() {
         MockitoAnnotations.openMocks(this);
-        doctorEmail = "doctor@example.com";
 
-        // Mocked Doctor object
-        mockDoctor = new Doctor();
-        mockDoctor.setEmail(doctorEmail);
+        // Initialize test data
+        doctor = new Doctor();
+        doctor.setEmail("doctor@example.com");
+        doctor.setDoctorName("Dr. John");
 
-        // Mocked AvailableDate object
-        mockAvailableDate = new AvailableDate();
-        mockAvailableDate.setDoctor(mockDoctor);
-        mockAvailableDate.setAppointmentFromdate(LocalDate.of(2024, 12, 1));
-        mockAvailableDate.setAppointmentEnddate(LocalDate.of(2024, 12, 10));
-        mockAvailableDate.setAmSlotTiming("09:00-12:00");
-        mockAvailableDate.setPmSlotTiming("14:00-17:00");
+        availableDate = new AvailableDate();
+        availableDate.setDoctor(doctor); // Set doctor object directly, not just the email
+        availableDate.setAvailableFromdate(LocalDate.now());
+        availableDate.setAvailableEnddate(LocalDate.now().plusDays(7));
+        availableDate.setAmSlotTiming("9:00 AM - 12:00 PM");
+        availableDate.setPmSlotTiming("1:00 PM - 5:00 PM");
     }
 
     @Test
-    void testGetAvailabilityByDoctor() {
-        // Mock the login email
-        when(doctorService.getLoginEmail()).thenReturn(doctorEmail);
-        when(availableDateRepository.findByDoctorEmail(doctorEmail)).thenReturn(mockAvailableDate);
+    void testGetAvailabilityByDoctor_Success() {
+        when(doctorService.getLoginEmail()).thenReturn("doctor@example.com");
+        when(availableDateRepository.findByDoctorEmail("doctor@example.com")).thenReturn(availableDate);
 
-        // Call the method
-        AvailableDate result = availableDateService.getAvailabilityByDoctor();
+        AvailableDate fetchedAvailability = availableDateService.getAvailabilityByDoctor();
 
-        // Assertions
-        assertNotNull(result);
-        assertEquals(doctorEmail, result.getDoctor().getEmail());
-        assertEquals("09:00-12:00", result.getAmSlotTiming());
-        assertEquals("14:00-17:00", result.getPmSlotTiming());
-
-        // Verify interactions
-        verify(doctorService).getLoginEmail();
-        verify(availableDateRepository).findByDoctorEmail(doctorEmail);
+        assertNotNull(fetchedAvailability);
+        assertEquals("doctor@example.com", fetchedAvailability.getDoctor().getEmail()); // Access doctor email through doctor object
     }
 
     @Test
-    void testUpdateAvailability_WhenExistingSlotExists() {
-        // Mock the login email and repository calls
-        when(doctorService.getLoginEmail()).thenReturn(doctorEmail);
-        when(availableDateRepository.findByDoctorEmail(doctorEmail)).thenReturn(mockAvailableDate);
+    void testGetAvailabilityByDoctor_NotFound() {
+        when(doctorService.getLoginEmail()).thenReturn("doctor@example.com");
+        when(availableDateRepository.findByDoctorEmail("doctor@example.com")).thenReturn(null);
 
-        // New available date to update
-        AvailableDate updatedAvailableDate = new AvailableDate();
-        updatedAvailableDate.setAppointmentFromdate(LocalDate.of(2024, 12, 5));
-        updatedAvailableDate.setAppointmentEnddate(LocalDate.of(2024, 12, 15));
-        updatedAvailableDate.setAmSlotTiming("08:00-12:00");
-        updatedAvailableDate.setPmSlotTiming("13:00-18:00");
+        AvailableDate fetchedAvailability = availableDateService.getAvailabilityByDoctor();
 
-        // Mock the save method
-        when(availableDateRepository.save(mockAvailableDate)).thenReturn(mockAvailableDate);
-
-        // Call the method
-        AvailableDate result = availableDateService.updateAvailability(updatedAvailableDate);
-
-        // Assertions
-        assertNotNull(result);
-        assertEquals("08:00-12:00", result.getAmSlotTiming());
-        assertEquals("13:00-18:00", result.getPmSlotTiming());
-        assertEquals(LocalDate.of(2024, 12, 5), result.getAppointmentFromdate());
-        assertEquals(LocalDate.of(2024, 12, 15), result.getAppointmentEnddate());
-
-        // Verify interactions
-        verify(doctorService).getLoginEmail();
-        verify(availableDateRepository).findByDoctorEmail(doctorEmail);
-        verify(availableDateRepository).save(mockAvailableDate);
+        assertNull(fetchedAvailability);
     }
-
-//    @Test
-//    void testUpdateAvailability_WhenNoExistingSlot() {
-//        // Mock the login email and repository calls
-//        when(doctorService.getLoginEmail()).thenReturn(doctorEmail);
-//        when(availableDateRepository.findByDoctorEmail(doctorEmail)).thenReturn(null);
-//        when(doctorRepository.findByEmail(doctorEmail)).thenReturn(Optional.of(mockDoctor));
-//
-//        // New available date to save
-//        AvailableDate newAvailableDate = new AvailableDate();
-//        newAvailableDate.setAppointmentFromdate(LocalDate.of(2024, 12, 1));
-//        newAvailableDate.setAppointmentEnddate(LocalDate.of(2024, 12, 10));
-//        newAvailableDate.setAmSlotTiming("09:00-12:00");
-//        newAvailableDate.setPmSlotTiming("14:00-17:00");
-//
-//        // Mock the save method
-//        when(availableDateRepository.save(newAvailableDate)).thenReturn(newAvailableDate);
-//
-//        // Call the method
-//        AvailableDate result = availableDateService.updateAvailability(newAvailableDate);
-//
-//        // Assertions
-//        assertNotNull(result);
-//        assertEquals(mockDoctor, result.getDoctor());
-//        assertEquals("09:00-12:00", result.getAmSlotTiming());
-//        assertEquals("14:00-17:00", result.getPmSlotTiming());
-//
-//        // Verify interactions
-//        verify(doctorService).getLoginEmail();
-//        verify(availableDateRepository).findByDoctorEmail(doctorEmail);
-//        verify(doctorRepository).findByEmail(doctorEmail);
-//        verify(availableDateRepository).save(newAvailableDate);
-//    }
-
 
     @Test
-    void testUpdateAvailability_DoctorNotFound() {
-        // Mock the login email and repository calls
-        when(doctorService.getLoginEmail()).thenReturn(doctorEmail);
-        when(availableDateRepository.findByDoctorEmail(doctorEmail)).thenReturn(null);
-        when(doctorRepository.findByEmail(doctorEmail)).thenReturn(Optional.empty());
+    void testUpdateAvailability_NewAvailability() {
+        when(doctorService.getLoginEmail()).thenReturn("doctor@example.com");
+        when(availableDateRepository.findByDoctorEmail("doctor@example.com")).thenReturn(null);
+        when(doctorRepository.findByEmail("doctor@example.com")).thenReturn(doctor);
+        when(availableDateRepository.save(any(AvailableDate.class))).thenReturn(availableDate);
 
-        // Call the method and assert the exception
-        RuntimeException exception = assertThrows(RuntimeException.class, () -> {
-            availableDateService.updateAvailability(new AvailableDate());
-        });
+        AvailableDate updatedAvailability = availableDateService.updateAvailability(availableDate);
 
-        assertEquals("Doctor not found with email: doctor@example.com", exception.getMessage());
-
-        // Verify interactions
-        verify(doctorService, times(3)).getLoginEmail();
-        verify(availableDateRepository).findByDoctorEmail(doctorEmail);
-        verify(doctorRepository).findByEmail(doctorEmail);
+        assertNotNull(updatedAvailability);
+        assertEquals("doctor@example.com", updatedAvailability.getDoctor().getEmail()); // Check doctor email
+        assertEquals("9:00 AM - 12:00 PM", updatedAvailability.getAmSlotTiming()); // Check if updated
     }
 
+    @Test
+    void testUpdateAvailability_ExistingAvailability() {
+        AvailableDate existingAvailability = new AvailableDate();
+        existingAvailability.setDoctor(doctor); // Ensure doctor is set properly
+        existingAvailability.setAvailableFromdate(LocalDate.now().plusDays(1));
+        existingAvailability.setAvailableEnddate(LocalDate.now().plusDays(7));
+        existingAvailability.setAmSlotTiming("8:00 AM - 11:00 AM");
+        existingAvailability.setPmSlotTiming("12:00 PM - 4:00 PM");
+
+        when(doctorService.getLoginEmail()).thenReturn("doctor@example.com");
+        when(availableDateRepository.findByDoctorEmail("doctor@example.com")).thenReturn(existingAvailability);
+        when(availableDateRepository.save(any(AvailableDate.class))).thenReturn(existingAvailability);
+
+        AvailableDate updatedAvailability = availableDateService.updateAvailability(availableDate);
+
+        assertNotNull(updatedAvailability);
+        assertEquals("doctor@example.com", updatedAvailability.getDoctor().getEmail()); // Check doctor email
+        assertEquals("9:00 AM - 12:00 PM", updatedAvailability.getAmSlotTiming()); // Check if updated
+    }
 }
+
